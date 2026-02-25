@@ -41,8 +41,12 @@ func main() {
 		initz.InitGitz(force)
 
 	case "push":
+		nodeIp := "None"
+		if len(os.Args) > 2 {
+			nodeIp = os.Args[2]
+		}
 		loadedConfig := initz.NewInventory().LoadGitzConf()
-		pushz.PushFilesToRemote(loadedConfig)
+		pushz.PushFilesToRemote(loadedConfig, nodeIp)
 
 	case "run":
 		if len(os.Args) < 3 {

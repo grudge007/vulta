@@ -21,20 +21,30 @@ type PushManager struct {
 	Auth        ssh.Signer
 }
 
-func PushFilesToRemote(loadedConfig *initz.Inventory) {
+func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string) {
 	var wg sync.WaitGroup
 
 	myPushManager := NewPushManager(*loadedConfig)
-	for i := 0; i < len(myPushManager.Config.Nodes); i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			myPushManager.pushFiles(index)
-		}(i)
+	if nodeIp != "None" {
+		for i := 0; i < len(myPushManager.Config.Nodes); i++ {
+			if nodeIp == myPushManager.Config.Nodes[i].IP {
+				myPushManager.pushFiles(i)
+			}
+
+		}
+	} else {
+
+		for i := 0; i < len(myPushManager.Config.Nodes); i++ {
+			wg.Add(1)
+			go func(index int) {
+				defer wg.Done()
+				myPushManager.pushFiles(index)
+			}(i)
+
+		}
+		wg.Wait()
 
 	}
-	wg.Wait()
-
 }
 
 func NewPushManager(inventory initz.Inventory) *PushManager {
