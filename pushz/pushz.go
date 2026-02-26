@@ -26,11 +26,11 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string) {
 
 	myPushManager := NewPushManager(*loadedConfig)
 	if nodeIp != "None" {
-		for i := 0; i < len(myPushManager.Config.Nodes); i++ {
-			if nodeIp == myPushManager.Config.Nodes[i].IP {
+		for i, node := range myPushManager.Config.Nodes {
+			if node.IP == nodeIp {
 				myPushManager.pushFiles(i)
-			}
 
+			}
 		}
 	} else {
 

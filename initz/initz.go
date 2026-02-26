@@ -73,6 +73,8 @@ func (inventory *Inventory) convertToYaml() {
 	err = os.WriteFile(dotGitz, gitzConfigData, 0644)
 	if err != nil {
 		fmt.Println(err)
+	} else {
+		fmt.Printf("successfully setup gitz, modify %v\n", dotGitz)
 	}
 }
 
