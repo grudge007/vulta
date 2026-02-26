@@ -7,3 +7,6 @@ dist/
 .gitz/
 pushy
 initz.go.old
+dist/
+setup-deb.md
+nfpm.yaml

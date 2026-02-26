@@ -3,13 +3,13 @@ package pushz
 import (
 	"bufio"
 	"fmt"
-	"gitz/initz"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+	"vulta/initz"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -21,20 +21,30 @@ type PushManager struct {
 	Auth        ssh.Signer
 }
 
-func PushFilesToRemote(loadedConfig *initz.Inventory) {
+func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string) {
 	var wg sync.WaitGroup
 
 	myPushManager := NewPushManager(*loadedConfig)
-	for i := 0; i < len(myPushManager.Config.Nodes); i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			myPushManager.pushFiles(index)
-		}(i)
+	if nodeIp != "None" {
+		for i, node := range myPushManager.Config.Nodes {
+			if node.IP == nodeIp {
+				myPushManager.pushFiles(i)
+
+			}
+		}
+	} else {
+
+		for i := 0; i < len(myPushManager.Config.Nodes); i++ {
+			wg.Add(1)
+			go func(index int) {
+				defer wg.Done()
+				myPushManager.pushFiles(index)
+			}(i)
+
+		}
+		wg.Wait()
 
 	}
-	wg.Wait()
-
 }
 
 func NewPushManager(inventory initz.Inventory) *PushManager {
@@ -51,7 +61,7 @@ func NewPushManager(inventory initz.Inventory) *PushManager {
 
 func (inventory *PushManager) getIgnoreFiles() []string {
 	var ignoreFiles []string
-	file := filepath.Join(inventory.Config.ProjectRoot, ".gitz", "gitzignore")
+	file := filepath.Join(inventory.Config.ProjectRoot, ".vulta", "vultaignore")
 	fmt.Println(file)
 	data, _ := os.Open(file)
 	scanner := bufio.NewScanner(data)

@@ -1,12 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"gitz/initz"
-	"gitz/pushz"
-	"gitz/runz"
+	"vulta/initz"
+	"vulta/pushz"
+	"vulta/runz"
 
-	"os"
 	"strings"
 )
 
@@ -14,56 +14,72 @@ const Version = "0.1.1"
 
 func main() {
 	var action string
+	var forceInitPtr bool
+	var nodePtr string
+	var versionPtr bool
 
-	if len(os.Args) > 1 {
-		action = os.Args[1]
-	} else {
-		fmt.Println("Usage:")
-		fmt.Println("  gitz init [--force|-f]")
-		fmt.Println("  gitz push")
-		fmt.Println("  gitz run <command>")
-		fmt.Println("  gitz --version")
+	flag.StringVar(&nodePtr, "node", "None", "Node IP")
+	flag.StringVar(&nodePtr, "n", "None", "Node IP")
+
+	flag.BoolVar(&versionPtr, "version", false, "Vesrion")
+	flag.BoolVar(&versionPtr, "v", false, "Vesrion")
+
+	flag.BoolVar(&forceInitPtr, "force", false, "Force Init")
+	flag.BoolVar(&forceInitPtr, "f", false, "Force Init")
+
+	flag.Parse()
+
+	if versionPtr {
+		fmt.Printf("vulta version %s\n", Version)
 		return
 	}
 
-	if action == "init" && len(os.Args) > 3 {
-		fmt.Println("Error: too many arguments for 'gitz init'.")
-		fmt.Println("Usage: gitz init [--force|-f]")
+	args := flag.Args()
+
+	if len(args) > 0 {
+		action = args[0]
+	} else {
+		fmt.Println("Usage:")
+		fmt.Println("  vulta init [--force|-f]")
+		fmt.Println("  vulta push")
+		fmt.Println("  vulta -node <node ip> push")
+		fmt.Println("  vulta run <command>")
+		fmt.Println("  vulta -node <node ip> run <command>")
+		fmt.Println("  vulta --version")
+		return
+	}
+
+	nodeIp := nodePtr
+
+	if action == "init" && len(args) > 2 {
+		fmt.Println("Error: too many arguments for 'vulta init'.")
+		fmt.Println("Usage: vulta init [--force|-f]")
 		return
 	}
 
 	switch action {
 	case "init":
-		force := false
-		if len(os.Args) > 2 && (os.Args[2] == "--force" || os.Args[2] == "-f") {
-			force = true
-		}
-		initz.InitGitz(force)
-
+		initz.InitVulta(forceInitPtr)
 	case "push":
-		loadedConfig := initz.NewInventory().LoadGitzConf()
-		pushz.PushFilesToRemote(loadedConfig)
+		loadedConfig := initz.NewInventory().LoadVultaConf()
+		pushz.PushFilesToRemote(loadedConfig, nodeIp)
 
 	case "run":
-		if len(os.Args) < 3 {
+		if len(args) < 2 {
 			fmt.Println("Error: no remote command specified.")
-			fmt.Println("Usage: gitz run <command>")
+			fmt.Println("Usage: vulta run <command>")
 			return
 		}
-		remoteCommand := strings.Join(os.Args[2:], " ")
-		loadedConfig := initz.NewInventory().LoadGitzConf()
-		runz.RunCommand(loadedConfig, remoteCommand)
-
-	case "-v", "--version":
-		fmt.Printf("gitz version %s\n", Version)
-		return
+		remoteCommand := strings.Join(args[1:], " ")
+		loadedConfig := initz.NewInventory().LoadVultaConf()
+		runz.RunCommand(loadedConfig, remoteCommand, nodeIp)
 
 	default:
 		fmt.Printf("Error: unknown command '%s'.\n", action)
 		fmt.Println("Usage:")
-		fmt.Println("  gitz init [--force|-f]")
-		fmt.Println("  gitz push")
-		fmt.Println("  gitz run <command>")
-		fmt.Println("  gitz --version")
+		fmt.Println("  vulta init [--force|-f]")
+		fmt.Println("  vulta push")
+		fmt.Println("  vulta run <command>")
+		fmt.Println("  vulta --version")
 	}
 }

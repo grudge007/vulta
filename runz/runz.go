@@ -2,10 +2,10 @@ package runz
 
 import (
 	"fmt"
-	"gitz/initz"
 	"os"
 	"sync"
 	"time"
+	"vulta/initz"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -16,21 +16,28 @@ type RunManager struct {
 	Auth ssh.Signer
 }
 
-func RunCommand(loadedConfig *initz.Inventory, remoteCommand string) {
+func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp string) {
 	var wg sync.WaitGroup
 
 	runCommand := CommandExec(*loadedConfig)
-	for i := 0; i < len(loadedConfig.Nodes); i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			fmt.Println(runCommand.cmdRunner(remoteCommand, index))
+	if nodeIp != "None" {
+		for i, node := range loadedConfig.Nodes {
+			if node.IP == nodeIp {
+				fmt.Println(runCommand.cmdRunner(remoteCommand, i))
+			}
+		}
+	} else {
+		for i := 0; i < len(loadedConfig.Nodes); i++ {
+			wg.Add(1)
+			go func(index int) {
+				defer wg.Done()
+				fmt.Println(runCommand.cmdRunner(remoteCommand, index))
 
-		}(i)
+			}(i)
 
+		}
+		wg.Wait()
 	}
-	wg.Wait()
-
 }
 
 func CommandExec(inventory initz.Inventory) *RunManager {
