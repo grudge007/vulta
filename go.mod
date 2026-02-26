@@ -1,4 +1,4 @@
-module gitz
+module vulta
 
 go 1.24.2
 

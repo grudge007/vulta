@@ -3,13 +3,13 @@ package pushz
 import (
 	"bufio"
 	"fmt"
-	"gitz/initz"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+	"vulta/initz"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -61,7 +61,7 @@ func NewPushManager(inventory initz.Inventory) *PushManager {
 
 func (inventory *PushManager) getIgnoreFiles() []string {
 	var ignoreFiles []string
-	file := filepath.Join(inventory.Config.ProjectRoot, ".gitz", "gitzignore")
+	file := filepath.Join(inventory.Config.ProjectRoot, ".vulta", "vultaignore")
 	fmt.Println(file)
 	data, _ := os.Open(file)
 	scanner := bufio.NewScanner(data)

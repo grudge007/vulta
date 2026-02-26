@@ -2,10 +2,10 @@ package runz
 
 import (
 	"fmt"
-	"gitz/initz"
 	"os"
 	"sync"
 	"time"
+	"vulta/initz"
 
 	"golang.org/x/crypto/ssh"
 )

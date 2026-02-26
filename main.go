@@ -3,9 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"gitz/initz"
-	"gitz/pushz"
-	"gitz/runz"
+	"vulta/initz"
+	"vulta/pushz"
+	"vulta/runz"
 
 	"strings"
 )
@@ -30,7 +30,7 @@ func main() {
 	flag.Parse()
 
 	if versionPtr {
-		fmt.Printf("gitz version %s\n", Version)
+		fmt.Printf("vulta version %s\n", Version)
 		return
 	}
 
@@ -40,46 +40,46 @@ func main() {
 		action = args[0]
 	} else {
 		fmt.Println("Usage:")
-		fmt.Println("  gitz init [--force|-f]")
-		fmt.Println("  gitz push")
-		fmt.Println("  gitz -node <node ip> push")
-		fmt.Println("  gitz run <command>")
-		fmt.Println("  gitz -node <node ip> run <command>")
-		fmt.Println("  gitz --version")
+		fmt.Println("  vulta init [--force|-f]")
+		fmt.Println("  vulta push")
+		fmt.Println("  vulta -node <node ip> push")
+		fmt.Println("  vulta run <command>")
+		fmt.Println("  vulta -node <node ip> run <command>")
+		fmt.Println("  vulta --version")
 		return
 	}
 
 	nodeIp := nodePtr
 
 	if action == "init" && len(args) > 2 {
-		fmt.Println("Error: too many arguments for 'gitz init'.")
-		fmt.Println("Usage: gitz init [--force|-f]")
+		fmt.Println("Error: too many arguments for 'vulta init'.")
+		fmt.Println("Usage: vulta init [--force|-f]")
 		return
 	}
 
 	switch action {
 	case "init":
-		initz.InitGitz(forceInitPtr)
+		initz.InitVulta(forceInitPtr)
 	case "push":
-		loadedConfig := initz.NewInventory().LoadGitzConf()
+		loadedConfig := initz.NewInventory().LoadVultaConf()
 		pushz.PushFilesToRemote(loadedConfig, nodeIp)
 
 	case "run":
 		if len(args) < 2 {
 			fmt.Println("Error: no remote command specified.")
-			fmt.Println("Usage: gitz run <command>")
+			fmt.Println("Usage: vulta run <command>")
 			return
 		}
 		remoteCommand := strings.Join(args[1:], " ")
-		loadedConfig := initz.NewInventory().LoadGitzConf()
+		loadedConfig := initz.NewInventory().LoadVultaConf()
 		runz.RunCommand(loadedConfig, remoteCommand, nodeIp)
 
 	default:
 		fmt.Printf("Error: unknown command '%s'.\n", action)
 		fmt.Println("Usage:")
-		fmt.Println("  gitz init [--force|-f]")
-		fmt.Println("  gitz push")
-		fmt.Println("  gitz run <command>")
-		fmt.Println("  gitz --version")
+		fmt.Println("  vulta init [--force|-f]")
+		fmt.Println("  vulta push")
+		fmt.Println("  vulta run <command>")
+		fmt.Println("  vulta --version")
 	}
 }

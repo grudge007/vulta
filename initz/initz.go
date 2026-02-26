@@ -25,9 +25,9 @@ type Inventory struct {
 
 // create constructor
 
-func InitGitz(force bool) {
+func InitVulta(force bool) {
 	project := NewInventory()
-	if project.checkIsGitzExist(force) {
+	if project.checkIsVultaExist(force) {
 		project.convertToYaml()
 	} else {
 		os.Exit(1)
@@ -62,30 +62,30 @@ func NewInventory() *Inventory {
 // yaml convertion helper
 func (inventory *Inventory) convertToYaml() {
 
-	dotGitz := inventory.getDotGitz()
+	dotVulta := inventory.getDotVulta()
 
-	gitzConfigData, err := yaml.Marshal(&inventory)
+	vultaConfigData, err := yaml.Marshal(&inventory)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	// return gitzConfigFile
-	err = os.WriteFile(dotGitz, gitzConfigData, 0644)
+	// return vultaConfigFile
+	err = os.WriteFile(dotVulta, vultaConfigData, 0644)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Printf("successfully setup gitz, modify %v\n", dotGitz)
+		fmt.Printf("successfully setup vulta, modify %v\n", dotVulta)
 	}
 }
 
-// dotGitz creation helper
-func (inventory *Inventory) getDotGitz() string {
-	dotGitz := filepath.Join(inventory.ProjectRoot, ".gitz")
-	err := os.MkdirAll(dotGitz, 0766)
+// dotVulta creation helper
+func (inventory *Inventory) getDotVulta() string {
+	dotVulta := filepath.Join(inventory.ProjectRoot, ".vulta")
+	err := os.MkdirAll(dotVulta, 0766)
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(dotGitz, "gitz.yaml")
+	return filepath.Join(dotVulta, "vulta.yaml")
 
 }
 
@@ -95,8 +95,8 @@ func getSshPvtKeyPath() string {
 
 }
 
-func (inventory *Inventory) checkIsGitzExist(force bool) bool {
-	_, err := os.Stat(inventory.getDotGitz())
+func (inventory *Inventory) checkIsVultaExist(force bool) bool {
+	_, err := os.Stat(inventory.getDotVulta())
 	if err != nil || force {
 		return true
 	} else {
@@ -107,8 +107,8 @@ func (inventory *Inventory) checkIsGitzExist(force bool) bool {
 	}
 }
 
-func (inventory *Inventory) LoadGitzConf() *Inventory {
-	inventoryFile, err := os.ReadFile(inventory.getDotGitz())
+func (inventory *Inventory) LoadVultaConf() *Inventory {
+	inventoryFile, err := os.ReadFile(inventory.getDotVulta())
 	if err != nil {
 		fmt.Println("Failed To Load Config")
 		os.Exit(1)
