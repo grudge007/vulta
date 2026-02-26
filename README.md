@@ -1,51 +1,52 @@
-# Vulta
+# Vulta: Fast & Simple Deployment
 
-**Vulta** is a high-performance, concurrent deployment and remote execution orchestrator. Built for engineers who need speed without the bloat of traditional configuration management, **Vulta** provides a streamlined way to synchronize code and execute commands across multiple nodes simultaneously using SSH and SFTP.
+**Vulta** is a high-speed tool for engineers who need to ship code and run commands across multiple servers without the headache of massive, "enterprise" automation software. It uses SSH and SFTP to get the job done quickly and keeps things lightweight.
 
-## Installation
+---
 
-**Vulta** is distributed via a custom Debian repository. You can install it on any compatible Linux system:
+## Get Started
+
+Vulta is currently available for Linux via a custom Debian repo. You can set it up in three steps:
 
 ```bash
-# Add the GPG key
-curl -fsSL http://me.iamgrudge.online/gitz-repo.gpg \
-| sudo gpg --dearmor -o /usr/share/keyrings/vulta.gpg
+# 1. Add the security key
+curl -fsSL http://me.iamgrudge.online/gitz-repo.gpg | sudo gpg --dearmor -o /usr/share/keyrings/vulta.gpg
 
-# Add the repository to your sources
-echo "deb [signed-by=/usr/share/keyrings/vulta.gpg] http://me.iamgrudge.online stable main" \
-| sudo tee /etc/apt/sources.list.d/vulta.list
+# 2. Add the repo to your system
+echo "deb [signed-by=/usr/share/keyrings/vulta.gpg] http://me.iamgrudge.online stable main" | sudo tee /etc/apt/sources.list.d/vulta.list
 
-# Update and install
+# 3. Install
 sudo apt update && sudo apt install vulta
 
 ```
 
-## Why Vulta?
+---
 
-Unlike heavy-duty automation suites, **Vulta** focuses on the "Developer Experience" (DX) for cloud engineers. It treats your infrastructure as a group of targets that you can hit with single-node precision (**Unicast**) or cluster-wide speed (**Broadcast**).
+## What makes Vulta different?
 
-## Core Features
+Most automation tools are "bloated"—they require you to learn a whole new language just to move a file. Vulta focuses on **speed** and **simplicity**:
 
-* **Native Concurrency:** Powered by Go goroutines to handle hundreds of node connections in parallel.
-* **System-First Execution:** A built-in engine (`runz`) for executing raw shell commands directly on the target OS.
-* **Minimalist Configuration:** Simple YAML-based inventory management. No complex DSL to learn.
-* **Intelligent Sync:** Uses `.vultaignore` patterns to keep your deployments clean and relevant.
-* **SSH Native:** Seamless integration with standard SSH private key authentication.
+* **Fast as hell:** It uses Go’s native concurrency to talk to hundreds of servers at the same time.
+* **No new languages:** You don't need to learn a complex DSL. If you know how to write a shell command, you know how to use Vulta.
+* **Smart Syncing:** Use a `.vultaignore` file (just like `.gitignore`) to keep your deployments clean.
+* **Secure:** It works right on top of your existing SSH keys.
 
-## Usage
+---
 
-### 1. Initialize
+## How to use it
 
-Set up a new project environment:
+### 1. Start a project
+
+Run this in your project folder to create the basic setup:
 
 ```bash
 vulta init
 
 ```
 
-### 2. Configure
+### 2. Add your servers
 
-Define your nodes in `.vulta/vulta.yaml`:
+List your servers in `.vulta/vulta.yaml`:
 
 ```yaml
 project_name: MyCloudApp
@@ -57,26 +58,17 @@ nodes:
 
 ```
 
-### 3. Deploy and Execute
+### 3. Push and Run
 
-**Broadcast** to all nodes or **Unicast** to a specific IP:
+You can send code to everyone at once or pick a single server.
 
-```bash
-# Push to everyone
-vulta push
+* **Deploy to everyone:** `vulta push`
+* **Deploy to one server:** `vulta push 192.168.1.10`
+* **Run a command everywhere:** `vulta run "systemctl restart my-app"`
 
-# Target a specific node
-vulta push 192.168.1.10
+---
 
-# Run commands cluster-wide
-vulta run "systemctl restart my-app"
+## Links
 
-```
-
-## Contributing
-
-The project is hosted at [github.com/grudge007/vulta](https://www.google.com/search?q=https://github.com/grudge007/vulta).
-
-## License
-
-This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**.
+* **Source Code:** [GitHub](https://www.google.com/search?q=https://github.com/grudge007/vulta)
+* **License:** GNU General Public License v3.0
