@@ -63,8 +63,9 @@ nodes:
 You can send code to everyone at once or pick a single server.
 
 * **Deploy to everyone:** `vulta push`
-* **Deploy to one server:** `vulta push 192.168.1.10`
+* **Deploy to one server:** `vulta -n 192.168.1.10 push`
 * **Run a command everywhere:** `vulta run "systemctl restart my-app"`
+* **Run a command on one server:** `vulta -n 192.168.1.10 run "systemctl restart my-app"`
 
 ---
 
