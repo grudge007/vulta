@@ -42,17 +42,17 @@ func main() {
 	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Forcefully Initialize Vulta in the Current Directory")
 
 	// push
-	var targetFiles []string
+	// var targetFiles []string
 	var pushCmd = &cobra.Command{
-		Use:   "push",
+		Use:   "push [file1 file2 ....]",
 		Short: "Push Files to Remote Nodes",
 		Run: func(cmd *cobra.Command, args []string) {
 			loadedConfig := initz.NewInventory().LoadVultaConf()
-			pushz.PushFilesToRemote(loadedConfig, nodeIp, quite, targetFiles)
+			pushz.PushFilesToRemote(loadedConfig, nodeIp, quite, args)
 
 		},
 	}
-	pushCmd.Flags().StringSliceVarP(&targetFiles, "file", "f", []string{}, "Specific files to push")
+	// pushCmd.Flags().StringSliceVarP(&targetFiles, "file", "f", []string{}, "Specific files to push")
 
 	// run
 	var runCmd = &cobra.Command{

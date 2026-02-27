@@ -24,15 +24,16 @@ type PushManager struct {
 
 func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool, files []string) {
 	var wg sync.WaitGroup
+	// fmt.Println(len(files))
 	myPushManager := NewPushManager(*loadedConfig, files)
 	if nodeIp != "None" {
 		for i, node := range myPushManager.Config.Nodes {
 			if node.IP == nodeIp {
 				switch quite {
 				case false:
-					fmt.Println(myPushManager.pushFiles(i, files))
+					fmt.Println(myPushManager.pushFiles(i))
 				case true:
-					myPushManager.pushFiles(i, files)
+					myPushManager.pushFiles(i)
 
 				}
 
@@ -44,7 +45,7 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool,
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				myPushManager.pushFiles(index, files)
+				myPushManager.pushFiles(index)
 			}(i)
 
 		}
@@ -82,6 +83,7 @@ func (inventory *PushManager) getIgnoreFiles() []string {
 
 func (inventory *PushManager) getLocalFiles(files []string) []string {
 	var filesToBeSent []string
+	// fmt.Println(files)
 	if len(files) > 0 {
 		for _, file := range files {
 			absPath, err := filepath.Abs(file)
@@ -102,6 +104,7 @@ func (inventory *PushManager) getLocalFiles(files []string) []string {
 			})
 
 		}
+		// fmt.Println(filesToBeSent)
 		return filesToBeSent
 
 	} else {
@@ -166,7 +169,7 @@ func (inventory *PushManager) getSshConnection(index int) *ssh.Client {
 	return conn
 }
 
-func (inventory *PushManager) pushFiles(index int, files []string) string {
+func (inventory *PushManager) pushFiles(index int) string {
 	var builder strings.Builder
 	var filesToBeSent []string
 
