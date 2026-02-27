@@ -34,7 +34,6 @@ func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp stri
 			}
 
 		}
-		fmt.Printf("Node %v not found in config file\n", nodeIp)
 	} else {
 		for i := 0; i < len(loadedConfig.Nodes); i++ {
 			wg.Add(1)

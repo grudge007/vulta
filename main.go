@@ -1,90 +1,121 @@
 package main
 
 import (
-	"flag"
-	"fmt"
+	"os"
 	"vulta/initz"
 	"vulta/pushz"
 	"vulta/runz"
 
 	"strings"
+
+	"github.com/spf13/cobra"
 )
 
-const Version = "0.2.0"
+const Version = "0.2.2"
+
+var nodeIp string
+var quite bool
 
 func main() {
-	var action string
-	var forceInitPtr bool
-	var nodePtr string
-	var versionPtr bool
-	var quitePtr bool
+	var rootCmd = &cobra.Command{
+		Use:   "vulta",
+		Short: "Vulta is a high-performance deployment orchestrator",
+		Run: func(cmd *cobra.Command, args []string) {
+			cmd.Help()
+		},
+	}
+	rootCmd.Version = Version
 
-	flag.StringVar(&nodePtr, "node", "None", "Node IP")
-	flag.StringVar(&nodePtr, "n", "None", "Node IP")
+	rootCmd.PersistentFlags().StringVar(&nodeIp, "node", "None", "Target Node IP")
+	rootCmd.PersistentFlags().BoolVar(&quite, "quite", false, "Quite Mode")
 
-	flag.BoolVar(&versionPtr, "version", false, "Vesrion")
-	flag.BoolVar(&versionPtr, "v", false, "Vesrion")
-
-	flag.BoolVar(&forceInitPtr, "force", false, "Force Init")
-	flag.BoolVar(&forceInitPtr, "f", false, "Force Init")
-
-	flag.BoolVar(&quitePtr, "quite", false, "Quite Mode")
-	flag.BoolVar(&quitePtr, "q", false, "Quite Mode")
-
-	flag.Parse()
-
-	if versionPtr {
-		fmt.Printf("vulta version %s\n", Version)
-		return
+	// Init
+	var forceInit bool
+	var initCmd = &cobra.Command{
+		Use:   "init",
+		Short: "Initialize Vulta in the Current Directory",
+		Run: func(cmd *cobra.Command, args []string) {
+			initz.InitVulta(forceInit)
+		},
 	}
 
-	args := flag.Args()
+	initCmd.Flags().BoolVarP(&forceInit, "force", "f", false, "Forcefully Initialize Vulta in the Current Directory")
 
-	if len(args) > 0 {
-		action = args[0]
-	} else {
-		fmt.Println("Usage:")
-		fmt.Println("  vulta init [--force|-f]")
-		fmt.Println("  vulta push")
-		fmt.Println("  vulta -node <node ip> push")
-		fmt.Println("  vulta run <command>")
-		fmt.Println("  vulta -node <node ip> run <command>")
-		fmt.Println("  vulta --version")
-		return
+	// push
+	var targetFiles []string
+	var pushCmd = &cobra.Command{
+		Use:   "push",
+		Short: "Push Files to Remote Nodes",
+		Run: func(cmd *cobra.Command, args []string) {
+			loadedConfig := initz.NewInventory().LoadVultaConf()
+			pushz.PushFilesToRemote(loadedConfig, nodeIp, quite, targetFiles)
+
+		},
+	}
+	pushCmd.Flags().StringSliceVarP(&targetFiles, "file", "f", []string{}, "Specific files to push")
+
+	// run
+	var runCmd = &cobra.Command{
+		Use:   "run",
+		Short: "Run Commands on Remote Nodes",
+		Run: func(cmd *cobra.Command, args []string) {
+			remoteCommand := strings.Join(args, " ")
+			loadedConfig := initz.NewInventory().LoadVultaConf()
+			runz.RunCommand(loadedConfig, remoteCommand, nodeIp, quite)
+		},
 	}
 
-	nodeIp := nodePtr
-	quite := quitePtr
+	// This allows the user to run 'vulta completion zsh' etc.
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "completion [bash|zsh|fish|powershell]",
+		Short: "Generate completion script",
+		Args:  cobra.ExactArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			switch args[0] {
+			case "bash":
+				rootCmd.GenBashCompletion(os.Stdout)
+			case "zsh":
+				rootCmd.GenZshCompletion(os.Stdout)
+				// ... add others as needed
+			}
+		},
+	})
 
-	if action == "init" && len(args) > 2 {
-		fmt.Println("Error: too many arguments for 'vulta init'.")
-		fmt.Println("Usage: vulta init [--force|-f]")
-		return
-	}
-
-	switch action {
-	case "init":
-		initz.InitVulta(forceInitPtr)
-	case "push":
-		loadedConfig := initz.NewInventory().LoadVultaConf()
-		pushz.PushFilesToRemote(loadedConfig, nodeIp, quite)
-
-	case "run":
-		if len(args) < 2 {
-			fmt.Println("Error: no remote command specified.")
-			fmt.Println("Usage: vulta run <command>")
-			return
-		}
-		remoteCommand := strings.Join(args[1:], " ")
-		loadedConfig := initz.NewInventory().LoadVultaConf()
-		runz.RunCommand(loadedConfig, remoteCommand, nodeIp, quite)
-
-	default:
-		fmt.Printf("Error: unknown command '%s'.\n", action)
-		fmt.Println("Usage:")
-		fmt.Println("  vulta init [--force|-f]")
-		fmt.Println("  vulta push")
-		fmt.Println("  vulta run <command>")
-		fmt.Println("  vulta --version")
+	rootCmd.AddCommand(initCmd, pushCmd, runCmd)
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
 	}
 }
+
+// if action == "init" && len(args) > 2 {
+// 	fmt.Println("Error: too many arguments for 'vulta init'.")
+// 	fmt.Println("Usage: vulta init [--force|-f]")
+// 	return
+// }
+
+// 	switch action {
+// 	case "init":
+// 		initz.InitVulta(forceInitPtr)
+// 	case "push":
+// 		loadedConfig := initz.NewInventory().LoadVultaConf()
+// 		pushz.PushFilesToRemote(loadedConfig, nodeIp, quite)
+
+// 	case "run":
+// 		if len(args) < 2 {
+// 			fmt.Println("Error: no remote command specified.")
+// 			fmt.Println("Usage: vulta run <command>")
+// 			return
+// 		}
+// 		remoteCommand := strings.Join(args[1:], " ")
+// 		loadedConfig := initz.NewInventory().LoadVultaConf()
+// 		runz.RunCommand(loadedConfig, remoteCommand, nodeIp, quite)
+
+// 	default:
+// 		fmt.Printf("Error: unknown command '%s'.\n", action)
+// 		fmt.Println("Usage:")
+// 		fmt.Println("  vulta init [--force|-f]")
+// 		fmt.Println("  vulta push")
+// 		fmt.Println("  vulta run <command>")
+// 		fmt.Println("  vulta --version")
+// 	}
+// }

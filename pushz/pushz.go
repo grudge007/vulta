@@ -22,18 +22,17 @@ type PushManager struct {
 	Auth        ssh.Signer
 }
 
-func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool) {
+func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool, files []string) {
 	var wg sync.WaitGroup
-
-	myPushManager := NewPushManager(*loadedConfig)
+	myPushManager := NewPushManager(*loadedConfig, files)
 	if nodeIp != "None" {
 		for i, node := range myPushManager.Config.Nodes {
 			if node.IP == nodeIp {
 				switch quite {
 				case false:
-					fmt.Println(myPushManager.pushFiles(i))
+					fmt.Println(myPushManager.pushFiles(i, files))
 				case true:
-					myPushManager.pushFiles(i)
+					myPushManager.pushFiles(i, files)
 
 				}
 
@@ -45,7 +44,7 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool)
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				myPushManager.pushFiles(index)
+				myPushManager.pushFiles(index, files)
 			}(i)
 
 		}
@@ -54,11 +53,11 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool)
 	}
 }
 
-func NewPushManager(inventory initz.Inventory) *PushManager {
+func NewPushManager(inventory initz.Inventory, files []string) *PushManager {
 	pushManager := &PushManager{
 		Config: inventory,
 	}
-	pushManager.FilesToPush = pushManager.getLocalFiles()
+	pushManager.FilesToPush = pushManager.getLocalFiles(files)
 	pushManager.Auth = pushManager.getSshSigner()
 	return pushManager
 
@@ -81,33 +80,59 @@ func (inventory *PushManager) getIgnoreFiles() []string {
 
 }
 
-func (inventory *PushManager) getLocalFiles() []string {
-	ignoreFiles := inventory.getIgnoreFiles()
+func (inventory *PushManager) getLocalFiles(files []string) []string {
 	var filesToBeSent []string
-	err := filepath.WalkDir(inventory.Config.ProjectRoot, func(path string, info fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		for _, fileName := range ignoreFiles {
-			if info.Name() == fileName {
-				if info.IsDir() {
-					return filepath.SkipDir
+	if len(files) > 0 {
+		for _, file := range files {
+			absPath, err := filepath.Abs(file)
+			if err != nil {
+				fmt.Printf("Error in find absoulute path for %v, Err: %v", file, err)
+			}
+			err = filepath.WalkDir(absPath, func(path string, d fs.DirEntry, err error) error {
+				if err != nil {
+					return err
 				}
+				if !d.IsDir() {
+					filesToBeSent = append(filesToBeSent, path)
+					return nil
+				}
+
+				return nil
+
+			})
+
+		}
+		return filesToBeSent
+
+	} else {
+		ignoreFiles := inventory.getIgnoreFiles()
+		err := filepath.WalkDir(inventory.Config.ProjectRoot, func(path string, info fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			for _, fileName := range ignoreFiles {
+				if info.Name() == fileName {
+					if info.IsDir() {
+						return filepath.SkipDir
+					}
+					return nil
+				}
+			}
+			if info.IsDir() {
 				return nil
 			}
-		}
-		if info.IsDir() {
+
+			filesToBeSent = append(filesToBeSent, path)
 			return nil
+
+		})
+		if err != nil {
+			fmt.Println(err)
 		}
+		return filesToBeSent
 
-		filesToBeSent = append(filesToBeSent, path)
-		return nil
-
-	})
-	if err != nil {
-		fmt.Println(err)
 	}
-	return filesToBeSent
+
 }
 
 func (inventory *PushManager) getSshSigner() ssh.Signer {
@@ -135,16 +160,20 @@ func (inventory *PushManager) getSshConnection(index int) *ssh.Client {
 	}
 	conn, err := ssh.Dial("tcp", inventory.Config.Nodes[index].IP+":22", config)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("Failed to establish ssh connection to node %v, Err: %v\n", inventory.Config.Nodes[index].IP, err)
 		return nil
 	}
 	return conn
 }
 
-func (inventory *PushManager) pushFiles(index int) string {
+func (inventory *PushManager) pushFiles(index int, files []string) string {
 	var builder strings.Builder
+	var filesToBeSent []string
+
 	createdDirs := make(map[string]bool)
-	filesToBeSent := inventory.FilesToPush
+
+	filesToBeSent = inventory.FilesToPush
+
 	connection := inventory.getSshConnection(index)
 	if connection == nil {
 		return "Failed to Connect SSH"
@@ -158,8 +187,11 @@ func (inventory *PushManager) pushFiles(index int) string {
 	defer client.Close()
 
 	for _, file := range filesToBeSent {
+		// fmt.Println("file: ", file)
 		relPath, _ := filepath.Rel(inventory.Config.ProjectRoot, file)
+		// fmt.Println("relPath: ", relPath)
 		remotePath := filepath.Join(inventory.Config.Nodes[index].Path, relPath)
+		// fmt.Println("remotePath: ", remotePath)
 		remoteDir := filepath.Dir(remotePath)
 		if !createdDirs[remoteDir] {
 			err := client.MkdirAll(remoteDir)
@@ -171,13 +203,14 @@ func (inventory *PushManager) pushFiles(index int) string {
 		}
 		localFile, err := os.Open(file)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Printf("Err: %v\n", err)
 			continue
 		}
 
 		remoteFile, err := client.Create(remotePath)
+		// fmt.Println(remotePath)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Printf("Err: %v\n", err)
 			localFile.Close()
 			continue
 		}

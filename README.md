@@ -10,7 +10,7 @@ Vulta is currently available for Linux via a custom Debian repo. You can set it 
 
 ```bash
 # 1. Add the security key
-curl -fsSL http://me.iamgrudge.online/gitz-repo.gpg | sudo gpg --dearmor -o /usr/share/keyrings/vulta.gpg
+curl -fsSL http://me.iamgrudge.online/vulta-repo.gpg | sudo gpg --dearmor -o /usr/share/keyrings/vulta.gpg
 
 # 2. Add the repo to your system
 echo "deb [signed-by=/usr/share/keyrings/vulta.gpg] http://me.iamgrudge.online stable main" | sudo tee /etc/apt/sources.list.d/vulta.list
