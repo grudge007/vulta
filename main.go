@@ -10,13 +10,14 @@ import (
 	"strings"
 )
 
-const Version = "0.1.1"
+const Version = "0.2.0"
 
 func main() {
 	var action string
 	var forceInitPtr bool
 	var nodePtr string
 	var versionPtr bool
+	var quitePtr bool
 
 	flag.StringVar(&nodePtr, "node", "None", "Node IP")
 	flag.StringVar(&nodePtr, "n", "None", "Node IP")
@@ -26,6 +27,9 @@ func main() {
 
 	flag.BoolVar(&forceInitPtr, "force", false, "Force Init")
 	flag.BoolVar(&forceInitPtr, "f", false, "Force Init")
+
+	flag.BoolVar(&quitePtr, "quite", false, "Quite Mode")
+	flag.BoolVar(&quitePtr, "q", false, "Quite Mode")
 
 	flag.Parse()
 
@@ -50,6 +54,7 @@ func main() {
 	}
 
 	nodeIp := nodePtr
+	quite := quitePtr
 
 	if action == "init" && len(args) > 2 {
 		fmt.Println("Error: too many arguments for 'vulta init'.")
@@ -62,7 +67,7 @@ func main() {
 		initz.InitVulta(forceInitPtr)
 	case "push":
 		loadedConfig := initz.NewInventory().LoadVultaConf()
-		pushz.PushFilesToRemote(loadedConfig, nodeIp)
+		pushz.PushFilesToRemote(loadedConfig, nodeIp, quite)
 
 	case "run":
 		if len(args) < 2 {
@@ -72,7 +77,7 @@ func main() {
 		}
 		remoteCommand := strings.Join(args[1:], " ")
 		loadedConfig := initz.NewInventory().LoadVultaConf()
-		runz.RunCommand(loadedConfig, remoteCommand, nodeIp)
+		runz.RunCommand(loadedConfig, remoteCommand, nodeIp, quite)
 
 	default:
 		fmt.Printf("Error: unknown command '%s'.\n", action)

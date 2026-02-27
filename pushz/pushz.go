@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 	"vulta/initz"
@@ -21,14 +22,20 @@ type PushManager struct {
 	Auth        ssh.Signer
 }
 
-func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string) {
+func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool) {
 	var wg sync.WaitGroup
 
 	myPushManager := NewPushManager(*loadedConfig)
 	if nodeIp != "None" {
 		for i, node := range myPushManager.Config.Nodes {
 			if node.IP == nodeIp {
-				myPushManager.pushFiles(i)
+				switch quite {
+				case false:
+					fmt.Println(myPushManager.pushFiles(i))
+				case true:
+					myPushManager.pushFiles(i)
+
+				}
 
 			}
 		}
@@ -62,7 +69,7 @@ func NewPushManager(inventory initz.Inventory) *PushManager {
 func (inventory *PushManager) getIgnoreFiles() []string {
 	var ignoreFiles []string
 	file := filepath.Join(inventory.Config.ProjectRoot, ".vulta", "vultaignore")
-	fmt.Println(file)
+	// fmt.Println(file)
 	data, _ := os.Open(file)
 	scanner := bufio.NewScanner(data)
 	for scanner.Scan() {
@@ -134,12 +141,13 @@ func (inventory *PushManager) getSshConnection(index int) *ssh.Client {
 	return conn
 }
 
-func (inventory *PushManager) pushFiles(index int) {
+func (inventory *PushManager) pushFiles(index int) string {
+	var builder strings.Builder
 	createdDirs := make(map[string]bool)
 	filesToBeSent := inventory.FilesToPush
 	connection := inventory.getSshConnection(index)
 	if connection == nil {
-		return
+		return "Failed to Connect SSH"
 	}
 	defer connection.Close()
 
@@ -181,11 +189,15 @@ func (inventory *PushManager) pushFiles(index int) {
 			remoteFile.Close()
 			continue
 		}
-		fmt.Printf("Succesfully Copied %v to %v\n", localFile.Name(), remoteFile.Name())
+
+		builder.WriteString(fmt.Sprintf("Succesfully Copied %v to %v\n", localFile.Name(), remoteFile.Name()))
 
 		localFile.Close()
 		remoteFile.Close()
 
 	}
+	finalReport := builder.String()
+
+	return finalReport
 
 }
