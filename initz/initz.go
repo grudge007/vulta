@@ -83,7 +83,8 @@ func (inventory *Inventory) getDotVulta() string {
 	dotVulta := filepath.Join(inventory.ProjectRoot, ".vulta")
 	err := os.MkdirAll(dotVulta, 0766)
 	if err != nil {
-		return ""
+		fmt.Printf("Error: could not create .vulta directory: %v\n", err)
+		os.Exit(1)
 	}
 	return filepath.Join(dotVulta, "vulta.yaml")
 

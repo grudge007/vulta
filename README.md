@@ -10,7 +10,7 @@ Vulta is currently available for Linux via a custom Debian repo. You can set it 
 
 ```bash
 # 1. Add the security key
-curl -fsSL http://me.iamgrudge.online/gitz-repo.gpg | sudo gpg --dearmor -o /usr/share/keyrings/vulta.gpg
+curl -fsSL http://me.iamgrudge.online/vulta-repo.gpg | sudo gpg --dearmor -o /usr/share/keyrings/vulta.gpg
 
 # 2. Add the repo to your system
 echo "deb [signed-by=/usr/share/keyrings/vulta.gpg] http://me.iamgrudge.online stable main" | sudo tee /etc/apt/sources.list.d/vulta.list
@@ -51,8 +51,7 @@ List your servers in `.vulta/vulta.yaml`:
 ```yaml
 project_name: MyCloudApp
 nodes:
-  - name: node1
-    ip: 192.168.1.10
+  - ip: 192.168.1.10
     user: root
     path: /var/www/app
 
@@ -73,3 +72,4 @@ You can send code to everyone at once or pick a single server.
 
 * **Source Code:** [GitHub](https://www.google.com/search?q=https://github.com/grudge007/vulta)
 * **License:** GNU General Public License v3.0
+.

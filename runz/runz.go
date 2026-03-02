@@ -16,22 +16,35 @@ type RunManager struct {
 	Auth ssh.Signer
 }
 
-func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp string) {
+func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp string, quite bool) {
 	var wg sync.WaitGroup
 
 	runCommand := CommandExec(*loadedConfig)
 	if nodeIp != "None" {
 		for i, node := range loadedConfig.Nodes {
 			if node.IP == nodeIp {
-				fmt.Println(runCommand.cmdRunner(remoteCommand, i))
+
+				switch quite {
+				case false:
+					fmt.Println(runCommand.cmdRunner(remoteCommand, i))
+				case true:
+					runCommand.cmdRunner(remoteCommand, i)
+				}
+
 			}
+
 		}
 	} else {
 		for i := 0; i < len(loadedConfig.Nodes); i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				fmt.Println(runCommand.cmdRunner(remoteCommand, index))
+				switch quite {
+				case false:
+					fmt.Println(runCommand.cmdRunner(remoteCommand, index))
+				case true:
+					runCommand.cmdRunner(remoteCommand, index)
+				}
 
 			}(i)
 
@@ -78,6 +91,7 @@ func (inventory *RunManager) getSshSigner() ssh.Signer {
 	if err != nil {
 		fmt.Printf("[ERROR] Failed to parse private key at %s: %v\n",
 			inventory.Config.PrivateKeyPath, err)
+		return nil
 	}
 	return signer
 }
