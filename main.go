@@ -13,10 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const Version = "0.2.4"
+const Version = "0.3.1"
 
 var nodeIp string
-var quite bool
+var quiet bool
 
 func main() {
 	var rootCmd = &cobra.Command{
@@ -29,7 +29,7 @@ func main() {
 	rootCmd.Version = Version
 
 	rootCmd.PersistentFlags().StringVarP(&nodeIp, "node", "n", "None", "Target Node IP")
-	rootCmd.PersistentFlags().BoolVarP(&quite, "quite", "q", false, "Quite Mode")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Quiet Mode")
 
 	// Init
 	var forceInit bool
@@ -57,7 +57,7 @@ func main() {
 			if err != nil {
 				state.LoadDeploymentState().MakeStateFile(*loadedConfig)
 			}
-			pushz.PushFilesToRemote(loadedConfig, nodeIp, quite, args)
+			pushz.PushFilesToRemote(loadedConfig, nodeIp, quiet, args)
 
 		},
 	}
@@ -65,12 +65,13 @@ func main() {
 
 	// run
 	var runCmd = &cobra.Command{
-		Use:   "run",
+		Use:   "run [command]",
 		Short: "Run Commands on Remote Nodes",
+		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			remoteCommand := strings.Join(args, " ")
 			loadedConfig := initz.NewInventory().LoadVultaConf()
-			runz.RunCommand(loadedConfig, remoteCommand, nodeIp, quite)
+			runz.RunCommand(loadedConfig, remoteCommand, nodeIp, quiet)
 		},
 	}
 
