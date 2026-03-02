@@ -91,6 +91,7 @@ func (inventory *RunManager) getSshSigner() ssh.Signer {
 	if err != nil {
 		fmt.Printf("[ERROR] Failed to parse private key at %s: %v\n",
 			inventory.Config.PrivateKeyPath, err)
+		return nil
 	}
 	return signer
 }

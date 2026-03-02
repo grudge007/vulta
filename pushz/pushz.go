@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 	"vulta/initz"
+	"vulta/state"
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
@@ -24,7 +25,6 @@ type PushManager struct {
 
 func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool, files []string) {
 	var wg sync.WaitGroup
-	// fmt.Println(len(files))
 	myPushManager := NewPushManager(*loadedConfig, files)
 	if nodeIp != "None" {
 		for i, node := range myPushManager.Config.Nodes {
@@ -45,7 +45,11 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool,
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				myPushManager.pushFiles(index)
+
+				output := myPushManager.pushFiles(index)
+				if !quite {
+					fmt.Println(output)
+				}
 			}(i)
 
 		}
@@ -69,14 +73,17 @@ func NewPushManager(inventory initz.Inventory, files []string) *PushManager {
 func (inventory *PushManager) getIgnoreFiles() []string {
 	var ignoreFiles []string
 	file := filepath.Join(inventory.Config.ProjectRoot, ".vulta", "vultaignore")
-	// fmt.Println(file)
-	data, _ := os.Open(file)
+	data, err := os.Open(file)
+	if err != nil {
+		// vultaignore doesn't exist, no files to ignore
+		return ignoreFiles
+	}
+	defer data.Close()
 	scanner := bufio.NewScanner(data)
 	for scanner.Scan() {
 		line := scanner.Text()
 		ignoreFiles = append(ignoreFiles, line)
 	}
-	data.Close()
 	return ignoreFiles
 
 }
@@ -141,11 +148,13 @@ func (inventory *PushManager) getLocalFiles(files []string) []string {
 func (inventory *PushManager) getSshSigner() ssh.Signer {
 	pvtKey, err := os.ReadFile(inventory.Config.PrivateKeyPath)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("[ERROR] Unable to read private key at %s: %v\n", inventory.Config.PrivateKeyPath, err)
+		return nil
 	}
 	signer, err := ssh.ParsePrivateKey(pvtKey)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("[ERROR] Failed to parse private key at %s: %v\n", inventory.Config.PrivateKeyPath, err)
+		return nil
 	}
 	return signer
 }
@@ -170,13 +179,19 @@ func (inventory *PushManager) getSshConnection(index int) *ssh.Client {
 }
 
 func (inventory *PushManager) pushFiles(index int) string {
+	node := inventory.Config.Nodes[index]
 	var builder strings.Builder
-	var filesToBeSent []string
 
-	createdDirs := make(map[string]bool)
+	// 1. Move the Load outside if possible, but for single node this is okay
+	ds := state.LoadDeploymentState()
 
-	filesToBeSent = inventory.FilesToPush
+	// 2. Batch check hashes
+	filesToBeSent, hashes := ds.CompareHash(node.IP, inventory.FilesToPush)
+	if len(filesToBeSent) == 0 {
+		return fmt.Sprintf("Node %s is already up to date.\n", node.IP)
+	}
 
+	// 3. Setup Connection
 	connection := inventory.getSshConnection(index)
 	if connection == nil {
 		return "Failed to Connect SSH"
@@ -185,55 +200,60 @@ func (inventory *PushManager) pushFiles(index int) string {
 
 	client, err := sftp.NewClient(connection)
 	if err != nil {
-		fmt.Printf("this line caused %v\n", err)
+		return fmt.Sprintf("SFTP Client Error: %v\n", err)
 	}
 	defer client.Close()
 
-	for _, file := range filesToBeSent {
-		// fmt.Println("file: ", file)
-		relPath, _ := filepath.Rel(inventory.Config.ProjectRoot, file)
-		// fmt.Println("relPath: ", relPath)
-		remotePath := filepath.Join(inventory.Config.Nodes[index].Path, relPath)
-		// fmt.Println("remotePath: ", remotePath)
-		remoteDir := filepath.Dir(remotePath)
-		if !createdDirs[remoteDir] {
-			err := client.MkdirAll(remoteDir)
-			if err != nil {
-				fmt.Println(err)
-			}
+	createdDirs := make(map[string]bool)
+	var successfulFiles []string
+	var successfulHashes []string
 
+	for i, file := range filesToBeSent {
+		relPath, err := filepath.Rel(inventory.Config.ProjectRoot, file)
+		if err != nil {
+			continue
+		}
+
+		remotePath := filepath.Join(node.Path, relPath)
+		remoteDir := filepath.Dir(remotePath)
+
+		// Only try to create the directory if we haven't in this session
+		if !createdDirs[remoteDir] {
+			_ = client.MkdirAll(remoteDir) // Ignore error if dir already exists
 			createdDirs[remoteDir] = true
 		}
-		localFile, err := os.Open(file)
-		if err != nil {
-			fmt.Printf("Err: %v\n", err)
-			continue
+
+		// Logic fix: Wrap file operations in a func or ensure they close immediately
+		err = func() error {
+			localFile, err := os.Open(file)
+			if err != nil {
+				return err
+			}
+			defer localFile.Close()
+
+			remoteFile, err := client.Create(remotePath)
+			if err != nil {
+				return err
+			}
+			defer remoteFile.Close()
+
+			_, err = io.Copy(remoteFile, localFile)
+			return err
+		}()
+
+		if err == nil {
+			builder.WriteString(fmt.Sprintf("Copied %v\n", file))
+			successfulFiles = append(successfulFiles, file)
+			successfulHashes = append(successfulHashes, hashes[i])
+		} else {
+			builder.WriteString(fmt.Sprintf("Failed %v: %v\n", file, err))
 		}
-
-		remoteFile, err := client.Create(remotePath)
-		// fmt.Println(remotePath)
-		if err != nil {
-			fmt.Printf("Err: %v\n", err)
-			localFile.Close()
-			continue
-		}
-
-		_, err = io.Copy(remoteFile, localFile)
-		if err != nil {
-			fmt.Println(err)
-			localFile.Close()
-			remoteFile.Close()
-			continue
-		}
-
-		builder.WriteString(fmt.Sprintf("Succesfully Copied %v to %v\n", localFile.Name(), remoteFile.Name()))
-
-		localFile.Close()
-		remoteFile.Close()
-
 	}
-	finalReport := builder.String()
 
-	return finalReport
+	// 4. Batch update state only for what worked
+	if len(successfulFiles) > 0 {
+		ds.UpdateHashTable(node.IP, successfulFiles, successfulHashes)
+	}
 
+	return builder.String()
 }

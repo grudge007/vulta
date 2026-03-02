@@ -2,16 +2,18 @@ package main
 
 import (
 	"os"
+	"path/filepath"
 	"vulta/initz"
 	"vulta/pushz"
 	"vulta/runz"
+	"vulta/state"
 
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-const Version = "0.2.2"
+const Version = "0.2.4"
 
 var nodeIp string
 var quite bool
@@ -26,8 +28,8 @@ func main() {
 	}
 	rootCmd.Version = Version
 
-	rootCmd.PersistentFlags().StringVar(&nodeIp, "node", "None", "Target Node IP")
-	rootCmd.PersistentFlags().BoolVar(&quite, "quite", false, "Quite Mode")
+	rootCmd.PersistentFlags().StringVarP(&nodeIp, "node", "n", "None", "Target Node IP")
+	rootCmd.PersistentFlags().BoolVarP(&quite, "quite", "q", false, "Quite Mode")
 
 	// Init
 	var forceInit bool
@@ -36,6 +38,8 @@ func main() {
 		Short: "Initialize Vulta in the Current Directory",
 		Run: func(cmd *cobra.Command, args []string) {
 			initz.InitVulta(forceInit)
+			// loadedConfig := initz.NewInventory().LoadVultaConf()
+			// state.LoadDeploymentState().MakeStateFile(*loadedConfig)
 		},
 	}
 
@@ -48,6 +52,11 @@ func main() {
 		Short: "Push Files to Remote Nodes",
 		Run: func(cmd *cobra.Command, args []string) {
 			loadedConfig := initz.NewInventory().LoadVultaConf()
+			stateFile := filepath.Join(initz.NewInventory().ProjectRoot, ".vulta/state.json")
+			_, err := os.Stat(stateFile)
+			if err != nil {
+				state.LoadDeploymentState().MakeStateFile(*loadedConfig)
+			}
 			pushz.PushFilesToRemote(loadedConfig, nodeIp, quite, args)
 
 		},

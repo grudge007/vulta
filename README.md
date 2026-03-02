@@ -51,8 +51,7 @@ List your servers in `.vulta/vulta.yaml`:
 ```yaml
 project_name: MyCloudApp
 nodes:
-  - name: node1
-    ip: 192.168.1.10
+  - ip: 192.168.1.10
     user: root
     path: /var/www/app
 
@@ -73,3 +72,4 @@ You can send code to everyone at once or pick a single server.
 
 * **Source Code:** [GitHub](https://www.google.com/search?q=https://github.com/grudge007/vulta)
 * **License:** GNU General Public License v3.0
+.
