@@ -28,7 +28,8 @@ Most automation tools are "bloated"—they require you to learn a whole new lang
 
 * **Fast as hell:** It uses Go’s native concurrency to talk to hundreds of servers at the same time.
 * **No new languages:** You don't need to learn a complex DSL. If you know how to write a shell command, you know how to use Vulta.
-* **Smart Syncing:** Use a `.vultaignore` file (just like `.gitignore`) to keep your deployments clean.
+* **Smart Syncing:** It tracks file hashes to avoid sending the same data twice, and respects your `.vultaignore` files.
+* **Robust & Simple:** We've polished the error handling so it tells you exactly what went wrong (like missing SSH keys) without crashing.
 * **Secure:** It works right on top of your existing SSH keys.
 
 ---
