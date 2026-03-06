@@ -16,7 +16,7 @@ type RunManager struct {
 	Auth ssh.Signer
 }
 
-func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp string, quite bool) {
+func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp string, quiet bool) {
 	var wg sync.WaitGroup
 
 	runCommand := CommandExec(*loadedConfig)
@@ -24,7 +24,7 @@ func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp stri
 		for i, node := range loadedConfig.Nodes {
 			if node.IP == nodeIp {
 
-				switch quite {
+				switch quiet {
 				case false:
 					fmt.Println(runCommand.cmdRunner(remoteCommand, i))
 				case true:
@@ -35,11 +35,15 @@ func RunCommand(loadedConfig *initz.Inventory, remoteCommand string, nodeIp stri
 
 		}
 	} else {
+		sem := make(chan struct{}, 10)
 		for i := 0; i < len(loadedConfig.Nodes); i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				switch quite {
+				sem <- struct{}{}        // Acquire
+				defer func() { <-sem }() // Release
+
+				switch quiet {
 				case false:
 					fmt.Println(runCommand.cmdRunner(remoteCommand, index))
 				case true:

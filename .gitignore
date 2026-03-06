@@ -12,4 +12,4 @@ setup-deb.md
 nfpm.yaml
 /.vulta
 vulta
-
+/website

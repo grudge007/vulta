@@ -21,15 +21,17 @@ type PushManager struct {
 	Config      initz.Inventory
 	FilesToPush []string
 	Auth        ssh.Signer
+	State       *state.DeploymentState
 }
 
-func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool, files []string) {
+func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quiet bool, files []string) {
 	var wg sync.WaitGroup
-	myPushManager := NewPushManager(*loadedConfig, files)
+	ds := state.LoadDeploymentState()
+	myPushManager := NewPushManager(*loadedConfig, files, ds)
 	if nodeIp != "None" {
 		for i, node := range myPushManager.Config.Nodes {
 			if node.IP == nodeIp {
-				switch quite {
+				switch quiet {
 				case false:
 					fmt.Println(myPushManager.pushFiles(i))
 				case true:
@@ -41,13 +43,16 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool,
 		}
 	} else {
 
+		sem := make(chan struct{}, 10)
 		for i := 0; i < len(myPushManager.Config.Nodes); i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
+				sem <- struct{}{}        // Acquire
+				defer func() { <-sem }() // Release
 
 				output := myPushManager.pushFiles(index)
-				if !quite {
+				if !quiet {
 					fmt.Println(output)
 				}
 			}(i)
@@ -58,9 +63,10 @@ func PushFilesToRemote(loadedConfig *initz.Inventory, nodeIp string, quite bool,
 	}
 }
 
-func NewPushManager(inventory initz.Inventory, files []string) *PushManager {
+func NewPushManager(inventory initz.Inventory, files []string, ds *state.DeploymentState) *PushManager {
 	pushManager := &PushManager{
 		Config: inventory,
+		State:  ds,
 	}
 	pushManager.FilesToPush = pushManager.getLocalFiles(files)
 	pushManager.Auth = pushManager.getSshSigner()
@@ -90,7 +96,7 @@ func (inventory *PushManager) getIgnoreFiles() []string {
 
 func (inventory *PushManager) getLocalFiles(files []string) []string {
 	var filesToBeSent []string
-	// fmt.Println(files)
+	fmt.Println(files)
 	if len(files) > 0 {
 		for _, file := range files {
 			absPath, err := filepath.Abs(file)
@@ -182,8 +188,8 @@ func (inventory *PushManager) pushFiles(index int) string {
 	node := inventory.Config.Nodes[index]
 	var builder strings.Builder
 
-	// 1. Move the Load outside if possible, but for single node this is okay
-	ds := state.LoadDeploymentState()
+	// 1. Use the shared state
+	ds := inventory.State
 
 	// 2. Batch check hashes
 	filesToBeSent, hashes := ds.CompareHash(node.IP, inventory.FilesToPush)
