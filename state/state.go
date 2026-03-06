@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 	"vulta/initz"
 	// "vulta/initz"
@@ -26,6 +27,7 @@ type NodeManifest struct {
 
 // The top-level "Source of Truth"
 type DeploymentState struct {
+	mu    sync.RWMutex
 	Nodes map[string]NodeManifest `json:"nodes"`
 }
 
@@ -37,14 +39,14 @@ func LoadDeploymentState() *DeploymentState {
 	data, err := os.ReadFile(".vulta/state.json")
 	if err != nil {
 		return &DeploymentState{
-			make(map[string]NodeManifest),
+			Nodes: make(map[string]NodeManifest),
 		}
 	}
 	var state DeploymentState
 	err = json.Unmarshal(data, &state)
 	if err != nil {
 		return &DeploymentState{
-			make(map[string]NodeManifest),
+			Nodes: make(map[string]NodeManifest),
 		}
 	}
 	return &state
@@ -68,6 +70,8 @@ func (inventory *DeploymentState) calculateHash(file string) (string, error) {
 }
 
 func (inventory *DeploymentState) CompareHash(nodeIp string, files []string) ([]string, []string) {
+	inventory.mu.RLock()
+	defer inventory.mu.RUnlock()
 	var dirtyFiles []string
 	var dirtyHashes []string
 
@@ -93,6 +97,9 @@ func (inventory *DeploymentState) CompareHash(nodeIp string, files []string) ([]
 }
 
 func (inventory *DeploymentState) UpdateHashTable(nodeip string, files []string, hashes []string) {
+	inventory.mu.Lock()
+	defer inventory.mu.Unlock()
+
 	// Ensure the top‑level map exists
 	if inventory.Nodes == nil {
 		inventory.Nodes = make(map[string]NodeManifest)
@@ -115,6 +122,9 @@ func (inventory *DeploymentState) UpdateHashTable(nodeip string, files []string,
 }
 
 func (inventory *DeploymentState) MakeStateFile(inv initz.Inventory) {
+	inventory.mu.Lock()
+	defer inventory.mu.Unlock()
+
 	err := filepath.WalkDir(inv.ProjectRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err

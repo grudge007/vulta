@@ -20,13 +20,25 @@ sudo apt update && sudo apt install vulta
 
 ```
 
+### Build from Source
+
+If you have Go installed, you can build Vulta using the provided `Makefile`:
+
+```bash
+# Clone the repo and run:
+make build
+
+# To install system-wide (requires sudo):
+make install
+```
+
 ---
 
 ## What makes Vulta different?
 
 Most automation tools are "bloated"—they require you to learn a whole new language just to move a file. Vulta focuses on **speed** and **simplicity**:
 
-* **Fast as hell:** It uses Go’s native concurrency to talk to hundreds of servers at the same time.
+* **Fast as hell:** It uses Go’s native concurrency to talk to hundreds of servers at the same time. Vulta intelligently limits concurrent sessions to 10 max to ensure stability and avoid server-side rate limits.
 * **No new languages:** You don't need to learn a complex DSL. If you know how to write a shell command, you know how to use Vulta.
 * **Smart Syncing:** It tracks file hashes to avoid sending the same data twice, and respects your `.vultaignore` files.
 * **Robust & Simple:** We've polished the error handling so it tells you exactly what went wrong (like missing SSH keys) without crashing.

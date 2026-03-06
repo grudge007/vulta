@@ -2,18 +2,16 @@ package main
 
 import (
 	"os"
-	"path/filepath"
 	"vulta/initz"
 	"vulta/pushz"
 	"vulta/runz"
-	"vulta/state"
 
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
-const Version = "0.3.1"
+const Version = "0.3.2"
 
 var nodeIp string
 var quiet bool
@@ -52,11 +50,6 @@ func main() {
 		Short: "Push Files to Remote Nodes",
 		Run: func(cmd *cobra.Command, args []string) {
 			loadedConfig := initz.NewInventory().LoadVultaConf()
-			stateFile := filepath.Join(initz.NewInventory().ProjectRoot, ".vulta/state.json")
-			_, err := os.Stat(stateFile)
-			if err != nil {
-				state.LoadDeploymentState().MakeStateFile(*loadedConfig)
-			}
 			pushz.PushFilesToRemote(loadedConfig, nodeIp, quiet, args)
 
 		},
